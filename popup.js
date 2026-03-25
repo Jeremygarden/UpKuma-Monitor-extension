@@ -48,6 +48,8 @@ const els = {
   monitorHeader: document.getElementById("monitorHeader"),
   saveBtn: document.getElementById("saveBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
+  langSwitch: document.getElementById("langSwitch"),
+  themeSwitch: document.getElementById("themeSwitch"),
   labelTotal: document.getElementById("labelTotal"),
   labelUp: document.getElementById("labelUp"),
   labelDown: document.getElementById("labelDown"),
@@ -61,8 +63,6 @@ const els = {
   statusDot: document.getElementById("statusDot"),
   monitorList: document.getElementById("monitorList"),
   toast: document.getElementById("toast"),
-  themeSelect: document.getElementById("themeSelect"),
-  langSelect: document.getElementById("langSelect"),
   refreshInterval: document.getElementById("refreshInterval"),
   kumaUrl: document.getElementById("kumaUrl"),
   apiToken: document.getElementById("apiToken")
@@ -76,6 +76,20 @@ function applyTheme(theme) {
   } else {
     root.dataset.theme = theme;
   }
+}
+
+function setSwitchValue(el, value) {
+  if (!el) return;
+  el.dataset.value = value;
+  const buttons = el.querySelectorAll(".switch-btn");
+  buttons.forEach((btn) => {
+    const isActive = btn.dataset.lang === value || btn.dataset.theme === value;
+    btn.classList.toggle("active", isActive);
+  });
+}
+
+function getSwitchValue(el) {
+  return el?.dataset?.value;
 }
 
 function applyLanguage(lang) {
@@ -105,14 +119,16 @@ function setConnected(isConnected, lang, errorMessage = "") {
 async function loadConfig() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
   const config = data[STORAGE_KEY] || { lang: "zh", theme: "dark", interval: 5 };
-  els.langSelect.value = config.lang || "zh";
-  els.themeSelect.value = config.theme || "dark";
+  const lang = config.lang || "zh";
+  const theme = config.theme || "dark";
+  setSwitchValue(els.langSwitch, lang);
+  setSwitchValue(els.themeSwitch, theme);
   els.kumaUrl.value = config.url || "";
   els.apiToken.value = config.token || "";
   els.refreshInterval.value = String(config.interval || 5);
-  applyTheme(config.theme || "dark");
-  applyLanguage(config.lang || "zh");
-  setConnected(false, config.lang || "zh");
+  applyTheme(theme);
+  applyLanguage(lang);
+  setConnected(false, lang);
 }
 
 function parseKumaMetrics(metricsText) {
@@ -255,8 +271,8 @@ function renderMonitors(monitors = []) {
 
 async function saveConfig() {
   const config = {
-    lang: els.langSelect.value,
-    theme: els.themeSelect.value,
+    lang: getSwitchValue(els.langSwitch) || "zh",
+    theme: getSwitchValue(els.themeSwitch) || "dark",
     interval: Number(els.refreshInterval.value || 5),
     url: els.kumaUrl.value.trim(),
     token: els.apiToken.value.trim()
@@ -268,18 +284,26 @@ async function saveConfig() {
   return config;
 }
 
-els.themeSelect.addEventListener("change", async () => {
-  applyTheme(els.themeSelect.value);
+els.themeSwitch.addEventListener("click", async (e) => {
+  const button = e.target.closest(".switch-btn");
+  if (!button) return;
+  const value = button.dataset.theme;
+  setSwitchValue(els.themeSwitch, value);
+  applyTheme(value);
   const data = await chrome.storage.local.get(STORAGE_KEY);
   const config = data[STORAGE_KEY] || {};
-  await chrome.storage.local.set({ [STORAGE_KEY]: { ...config, theme: els.themeSelect.value } });
+  await chrome.storage.local.set({ [STORAGE_KEY]: { ...config, theme: value } });
 });
 
-els.langSelect.addEventListener("change", async () => {
-  applyLanguage(els.langSelect.value);
+els.langSwitch.addEventListener("click", async (e) => {
+  const button = e.target.closest(".switch-btn");
+  if (!button) return;
+  const value = button.dataset.lang;
+  setSwitchValue(els.langSwitch, value);
+  applyLanguage(value);
   const data = await chrome.storage.local.get(STORAGE_KEY);
   const config = data[STORAGE_KEY] || {};
-  await chrome.storage.local.set({ [STORAGE_KEY]: { ...config, lang: els.langSelect.value } });
+  await chrome.storage.local.set({ [STORAGE_KEY]: { ...config, lang: value } });
 });
 
 els.saveBtn.addEventListener("click", async () => {

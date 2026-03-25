@@ -17,15 +17,16 @@
           </div>
         </div>
         <div class="toggles">
-          <select id="langSelect" class="select">
-            <option value="zh">中文</option>
-            <option value="en">EN</option>
-          </select>
-          <select id="themeSelect" class="select">
-            <option value="auto">Auto</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
+          <div class="switch" id="langSwitch">
+            <button data-lang="zh" class="switch-btn">中</button>
+            <button data-lang="en" class="switch-btn">EN</button>
+            <div class="switch-indicator"></div>
+          </div>
+          <div class="switch" id="themeSwitch">
+            <button data-theme="light" class="switch-btn">🌞</button>
+            <button data-theme="dark" class="switch-btn">🌙</button>
+            <div class="switch-indicator"></div>
+          </div>
         </div>
       </header>
 
