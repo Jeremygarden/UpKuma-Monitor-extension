@@ -42,6 +42,10 @@ const els = {
   labelUp: document.getElementById("labelUp"),
   labelDown: document.getElementById("labelDown"),
   labelPending: document.getElementById("labelPending"),
+  statTotal: document.getElementById("statTotal"),
+  statUp: document.getElementById("statUp"),
+  statDown: document.getElementById("statDown"),
+  statPending: document.getElementById("statPending"),
   statusText: document.getElementById("statusText"),
   statusDot: document.getElementById("statusDot"),
   themeSelect: document.getElementById("themeSelect"),
@@ -93,6 +97,42 @@ async function loadConfig() {
   setConnected(false, config.lang || "zh");
 }
 
+function parseKumaMetrics(metricsText) {
+  let up = 0;
+  let down = 0;
+  let pending = 0;
+
+  const lines = metricsText.split("\n");
+  for (const line of lines) {
+    if (!line.startsWith("monitor_status{")) continue;
+    const valueStr = line.trim().split(" ").pop();
+    const value = Number(valueStr);
+    if (value === 1) up++;
+    else if (value === 0) down++;
+    else if (value === 2) pending++;
+  }
+
+  return { total: up + down + pending, up, down, pending };
+}
+
+async function fetchMetrics(config) {
+  if (!config.url) throw new Error("Missing URL");
+  const endpoint = config.url.replace(/\/$/, "") + "/metrics";
+  const headers = {};
+  if (config.token) headers["Authorization"] = `Bearer ${config.token}`;
+  const resp = await fetch(endpoint, { headers });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const text = await resp.text();
+  return parseKumaMetrics(text);
+}
+
+function updateStats(stats) {
+  els.statTotal.textContent = String(stats.total);
+  els.statUp.textContent = String(stats.up);
+  els.statDown.textContent = String(stats.down);
+  els.statPending.textContent = String(stats.pending);
+}
+
 async function saveConfig() {
   const config = {
     lang: els.langSelect.value,
@@ -104,6 +144,7 @@ async function saveConfig() {
   applyTheme(config.theme);
   applyLanguage(config.lang);
   setConnected(Boolean(config.url), config.lang);
+  return config;
 }
 
 els.themeSelect.addEventListener("change", async () => {
@@ -120,7 +161,30 @@ els.langSelect.addEventListener("change", async () => {
   await chrome.storage.local.set({ [STORAGE_KEY]: { ...config, lang: els.langSelect.value } });
 });
 
-els.saveBtn.addEventListener("click", saveConfig);
+els.saveBtn.addEventListener("click", async () => {
+  const config = await saveConfig();
+  try {
+    const stats = await fetchMetrics(config);
+    updateStats(stats);
+    setConnected(true, config.lang);
+  } catch (err) {
+    console.error(err);
+    setConnected(false, config.lang);
+  }
+});
+
+els.refreshBtn.addEventListener("click", async () => {
+  const data = await chrome.storage.local.get(STORAGE_KEY);
+  const config = data[STORAGE_KEY] || {};
+  try {
+    const stats = await fetchMetrics(config);
+    updateStats(stats);
+    setConnected(true, config.lang || "zh");
+  } catch (err) {
+    console.error(err);
+    setConnected(false, config.lang || "zh");
+  }
+});
 
 (async () => {
   await loadConfig();
