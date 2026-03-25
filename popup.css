@@ -257,14 +257,20 @@ input {
 .stat::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(34,197,94,0.08), transparent 50%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  inset: -40% 0;
+  background: linear-gradient(120deg, transparent 20%, rgba(56,189,248,0.25), transparent 60%);
+  opacity: 0.9;
+  transform: translateX(-120%);
+  animation: shimmer 4s linear infinite;
 }
 
 .stat:hover::after {
   opacity: 1;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
 }
 
 .stat-label {
@@ -368,7 +374,23 @@ input {
   height: 8px;
   border-radius: 50%;
   background: var(--danger);
+  box-shadow: 0 0 6px rgba(255, 77, 109, 0.7);
+  animation: pulseDown 2s ease-in-out infinite;
 }
 
-.connected .dot { background: var(--primary); }
+.connected .dot {
+  background: var(--primary);
+  box-shadow: 0 0 10px rgba(34, 241, 168, 0.9);
+  animation: pulseUp 2.2s ease-in-out infinite;
+}
+
+@keyframes pulseUp {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(34, 241, 168, 0.8); }
+  50% { transform: scale(1.25); box-shadow: 0 0 18px rgba(34, 241, 168, 1); }
+}
+
+@keyframes pulseDown {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(255, 77, 109, 0.7); }
+  50% { transform: scale(1.2); box-shadow: 0 0 16px rgba(255, 77, 109, 1); }
+}
 
