@@ -165,6 +165,45 @@ input {
 .stat.bad .stat-value { color: var(--danger); }
 .stat.warn .stat-value { color: var(--warning); }
 
+.monitors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.monitor-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.monitor-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #0b1220;
+}
+
+.badge.up { background: var(--primary); }
+.badge.down { background: var(--danger); color: #fff; }
+.badge.pending { background: var(--warning); }
+
 .footer {
   display: flex;
   align-items: center;

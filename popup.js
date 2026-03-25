@@ -49,6 +49,7 @@ const els = {
   statusText: document.getElementById("statusText"),
   errorText: document.getElementById("errorText"),
   statusDot: document.getElementById("statusDot"),
+  monitorList: document.getElementById("monitorList"),
   themeSelect: document.getElementById("themeSelect"),
   langSelect: document.getElementById("langSelect"),
   kumaUrl: document.getElementById("kumaUrl"),
@@ -103,6 +104,7 @@ function parseKumaMetrics(metricsText) {
   let up = 0;
   let down = 0;
   let pending = 0;
+  const monitors = [];
 
   const lines = metricsText.split("\n");
   for (const line of lines) {
@@ -112,9 +114,17 @@ function parseKumaMetrics(metricsText) {
     if (value === 1) up++;
     else if (value === 0) down++;
     else if (value === 2) pending++;
+
+    const nameMatch = line.match(/monitor_name="([^"]+)"/);
+    const idMatch = line.match(/monitor_id="([^"]+)"/);
+    monitors.push({
+      id: idMatch ? idMatch[1] : undefined,
+      name: nameMatch ? nameMatch[1] : "Unnamed",
+      status: value
+    });
   }
 
-  return { total: up + down + pending, up, down, pending };
+  return { total: up + down + pending, up, down, pending, monitors };
 }
 
 async function fetchMetrics(config) {
@@ -139,6 +149,7 @@ async function refreshOnce(config) {
   try {
     const stats = await fetchMetrics(config);
     updateStats(stats);
+    renderMonitors(stats.monitors);
     setConnected(true, config.lang || "zh");
   } catch (err) {
     console.error(err);
@@ -151,6 +162,38 @@ function updateStats(stats) {
   els.statUp.textContent = String(stats.up);
   els.statDown.textContent = String(stats.down);
   els.statPending.textContent = String(stats.pending);
+}
+
+function statusLabel(value) {
+  if (value === 1) return "UP";
+  if (value === 0) return "DOWN";
+  return "PENDING";
+}
+
+function statusClass(value) {
+  if (value === 1) return "up";
+  if (value === 0) return "down";
+  return "pending";
+}
+
+function renderMonitors(monitors = []) {
+  els.monitorList.innerHTML = "";
+  if (!monitors.length) return;
+  const frag = document.createDocumentFragment();
+  monitors.forEach((m) => {
+    const row = document.createElement("div");
+    row.className = "monitor-item";
+    const name = document.createElement("div");
+    name.className = "monitor-name";
+    name.textContent = m.name || "Unnamed";
+    const badge = document.createElement("div");
+    badge.className = `badge ${statusClass(m.status)}`;
+    badge.textContent = statusLabel(m.status);
+    row.appendChild(name);
+    row.appendChild(badge);
+    frag.appendChild(row);
+  });
+  els.monitorList.appendChild(frag);
 }
 
 async function saveConfig() {
