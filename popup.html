@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UpKuma Monitor</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="title-wrap">
+          <div class="logo">🟢</div>
+          <div>
+            <h1 id="title">UpKuma Monitor</h1>
+            <p id="subtitle">Lightweight status dashboard</p>
+          </div>
+        </div>
+        <div class="toggles">
+          <select id="langSelect" class="select">
+            <option value="zh">中文</option>
+            <option value="en">EN</option>
+          </select>
+          <select id="themeSelect" class="select">
+            <option value="auto">Auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <label for="kumaUrl" id="labelUrl">Kuma URL</label>
+          <input id="kumaUrl" type="text" placeholder="https://your-kuma.example.com" />
+        </div>
+        <div class="row">
+          <label for="apiToken" id="labelToken">API Token (optional)</label>
+          <input id="apiToken" type="password" placeholder="token" />
+        </div>
+        <div class="actions">
+          <button id="saveBtn" class="btn primary">Save config & connect</button>
+          <button id="refreshBtn" class="btn ghost">Refresh</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="stat">
+          <div class="stat-label" id="labelTotal">Total</div>
+          <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat good">
+          <div class="stat-label" id="labelUp">Up</div>
+          <div class="stat-value" id="statUp">0</div>
+        </div>
+        <div class="stat bad">
+          <div class="stat-label" id="labelDown">Down</div>
+          <div class="stat-value" id="statDown">0</div>
+        </div>
+        <div class="stat warn">
+          <div class="stat-label" id="labelPending">Pending</div>
+          <div class="stat-value" id="statPending">0</div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span id="statusText">Disconnected</span>
+        <span class="dot" id="statusDot"></span>
+      </footer>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
