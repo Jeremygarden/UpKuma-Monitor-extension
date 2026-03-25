@@ -6,6 +6,7 @@ const i18n = {
     subtitle: "Lightweight status dashboard",
     labelUrl: "Kuma URL",
     labelToken: "API Token (optional)",
+    labelInterval: "Refresh Interval",
     save: "Save config & connect",
     refresh: "Refresh",
     total: "Total",
@@ -13,13 +14,16 @@ const i18n = {
     down: "Down",
     pending: "Pending",
     disconnected: "Disconnected",
-    connected: "Connected"
+    connected: "Connected",
+    toastSaved: "Config saved",
+    toastError: "Connection failed"
   },
   zh: {
     title: "UpKuma 监控",
     subtitle: "轻量级状态面板",
     labelUrl: "Kuma 地址",
     labelToken: "API Token（可选）",
+    labelInterval: "刷新频率",
     save: "保存配置并连接",
     refresh: "刷新",
     total: "总数",
@@ -27,7 +31,9 @@ const i18n = {
     down: "异常",
     pending: "待处理",
     disconnected: "未连接",
-    connected: "已连接"
+    connected: "已连接",
+    toastSaved: "配置已保存",
+    toastError: "连接失败"
   }
 };
 
@@ -36,6 +42,7 @@ const els = {
   subtitle: document.getElementById("subtitle"),
   labelUrl: document.getElementById("labelUrl"),
   labelToken: document.getElementById("labelToken"),
+  labelInterval: document.getElementById("labelInterval"),
   saveBtn: document.getElementById("saveBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
   labelTotal: document.getElementById("labelTotal"),
@@ -50,8 +57,10 @@ const els = {
   errorText: document.getElementById("errorText"),
   statusDot: document.getElementById("statusDot"),
   monitorList: document.getElementById("monitorList"),
+  toast: document.getElementById("toast"),
   themeSelect: document.getElementById("themeSelect"),
   langSelect: document.getElementById("langSelect"),
+  refreshInterval: document.getElementById("refreshInterval"),
   kumaUrl: document.getElementById("kumaUrl"),
   apiToken: document.getElementById("apiToken")
 };
@@ -72,6 +81,7 @@ function applyLanguage(lang) {
   els.subtitle.textContent = t.subtitle;
   els.labelUrl.textContent = t.labelUrl;
   els.labelToken.textContent = t.labelToken;
+  els.labelInterval.textContent = t.labelInterval;
   els.saveBtn.textContent = t.save;
   els.refreshBtn.textContent = t.refresh;
   els.labelTotal.textContent = t.total;
@@ -90,11 +100,12 @@ function setConnected(isConnected, lang, errorMessage = "") {
 
 async function loadConfig() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
-  const config = data[STORAGE_KEY] || { lang: "zh", theme: "dark" };
+  const config = data[STORAGE_KEY] || { lang: "zh", theme: "dark", interval: 5 };
   els.langSelect.value = config.lang || "zh";
   els.themeSelect.value = config.theme || "dark";
   els.kumaUrl.value = config.url || "";
   els.apiToken.value = config.token || "";
+  els.refreshInterval.value = String(config.interval || 5);
   applyTheme(config.theme || "dark");
   applyLanguage(config.lang || "zh");
   setConnected(false, config.lang || "zh");
@@ -104,27 +115,42 @@ function parseKumaMetrics(metricsText) {
   let up = 0;
   let down = 0;
   let pending = 0;
-  const monitors = [];
+  const monitors = new Map();
 
   const lines = metricsText.split("\n");
   for (const line of lines) {
-    if (!line.startsWith("monitor_status{")) continue;
-    const valueStr = line.trim().split(" ").pop();
-    const value = Number(valueStr);
-    if (value === 1) up++;
-    else if (value === 0) down++;
-    else if (value === 2) pending++;
+    if (line.startsWith("monitor_status{")) {
+      const valueStr = line.trim().split(" ").pop();
+      const value = Number(valueStr);
+      if (value === 1) up++;
+      else if (value === 0) down++;
+      else if (value === 2) pending++;
 
-    const nameMatch = line.match(/monitor_name="([^"]+)"/);
-    const idMatch = line.match(/monitor_id="([^"]+)"/);
-    monitors.push({
-      id: idMatch ? idMatch[1] : undefined,
-      name: nameMatch ? nameMatch[1] : "Unnamed",
-      status: value
-    });
+      const nameMatch = line.match(/monitor_name="([^"]+)"/);
+      const idMatch = line.match(/monitor_id="([^"]+)"/);
+      const id = idMatch ? idMatch[1] : nameMatch ? nameMatch[1] : `${monitors.size}`;
+      const existing = monitors.get(id) || { id, name: nameMatch ? nameMatch[1] : "Unnamed" };
+      existing.status = value;
+      monitors.set(id, existing);
+      continue;
+    }
+
+    if (line.startsWith("monitor_response_time{")) {
+      const valueStr = line.trim().split(" ").pop();
+      const value = Number(valueStr);
+      const nameMatch = line.match(/monitor_name="([^"]+)"/);
+      const idMatch = line.match(/monitor_id="([^"]+)"/);
+      const id = idMatch ? idMatch[1] : nameMatch ? nameMatch[1] : `${monitors.size}`;
+      const existing = monitors.get(id) || { id, name: nameMatch ? nameMatch[1] : "Unnamed" };
+      existing.responseTime = value;
+      monitors.set(id, existing);
+    }
   }
 
-  return { total: up + down + pending, up, down, pending, monitors };
+  const now = Date.now();
+  const list = Array.from(monitors.values()).map((m) => ({ ...m, lastUpdated: now }));
+
+  return { total: up + down + pending, up, down, pending, monitors: list };
 }
 
 async function fetchMetrics(config) {
@@ -145,6 +171,17 @@ function normalizeError(err) {
   return "Unknown error";
 }
 
+let toastTimer = null;
+function showToast(message) {
+  if (!message) return;
+  els.toast.textContent = message;
+  els.toast.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove("show");
+  }, 2000);
+}
+
 async function refreshOnce(config) {
   try {
     const stats = await fetchMetrics(config);
@@ -154,6 +191,7 @@ async function refreshOnce(config) {
   } catch (err) {
     console.error(err);
     setConnected(false, config.lang || "zh", normalizeError(err));
+    showToast((i18n[config.lang] || i18n.en).toastError);
   }
 }
 
@@ -183,13 +221,28 @@ function renderMonitors(monitors = []) {
   monitors.forEach((m) => {
     const row = document.createElement("div");
     row.className = "monitor-item";
+
+    const left = document.createElement("div");
+    left.className = "monitor-info";
+
     const name = document.createElement("div");
     name.className = "monitor-name";
     name.textContent = m.name || "Unnamed";
+
+    const meta = document.createElement("div");
+    meta.className = "monitor-meta";
+    const response = typeof m.responseTime === "number" ? `${m.responseTime.toFixed(0)} ms` : "--";
+    const updated = m.lastUpdated ? new Date(m.lastUpdated).toLocaleTimeString() : "--";
+    meta.textContent = `${response} · ${updated}`;
+
+    left.appendChild(name);
+    left.appendChild(meta);
+
     const badge = document.createElement("div");
     badge.className = `badge ${statusClass(m.status)}`;
     badge.textContent = statusLabel(m.status);
-    row.appendChild(name);
+
+    row.appendChild(left);
     row.appendChild(badge);
     frag.appendChild(row);
   });
@@ -200,6 +253,7 @@ async function saveConfig() {
   const config = {
     lang: els.langSelect.value,
     theme: els.themeSelect.value,
+    interval: Number(els.refreshInterval.value || 5),
     url: els.kumaUrl.value.trim(),
     token: els.apiToken.value.trim()
   };
@@ -226,6 +280,7 @@ els.langSelect.addEventListener("change", async () => {
 
 els.saveBtn.addEventListener("click", async () => {
   const config = await saveConfig();
+  showToast((i18n[config.lang] || i18n.en).toastSaved);
   await refreshOnce(config);
   await startAutoRefresh();
 });
@@ -243,7 +298,8 @@ async function startAutoRefresh() {
   const config = data[STORAGE_KEY] || {};
   if (refreshTimer) clearInterval(refreshTimer);
   if (!config.url) return;
-  refreshTimer = setInterval(() => refreshOnce(config), 60 * 1000);
+  const intervalMinutes = Number(config.interval || 5);
+  refreshTimer = setInterval(() => refreshOnce(config), intervalMinutes * 60 * 1000);
 }
 
 (async () => {

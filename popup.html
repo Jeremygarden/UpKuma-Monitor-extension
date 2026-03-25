@@ -38,6 +38,15 @@
           <label for="apiToken" id="labelToken">API Token (optional)</label>
           <input id="apiToken" type="password" placeholder="token" />
         </div>
+        <div class="row">
+          <label for="refreshInterval" id="labelInterval">Refresh Interval</label>
+          <select id="refreshInterval" class="select">
+            <option value="1">1 min</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="30">30 min</option>
+          </select>
+        </div>
         <div class="actions">
           <button id="saveBtn" class="btn primary">Save config & connect</button>
           <button id="refreshBtn" class="btn ghost">Refresh</button>
@@ -64,6 +73,8 @@
       </section>
 
       <section class="monitors" id="monitorList"></section>
+
+      <div id="toast" class="toast"></div>
 
       <footer class="footer">
         <span id="statusText">Disconnected</span>
