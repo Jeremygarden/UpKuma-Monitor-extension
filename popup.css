@@ -171,6 +171,17 @@ input {
   justify-content: space-between;
   color: var(--muted);
   font-size: 12px;
+  gap: 8px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 11px;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dot {

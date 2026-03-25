@@ -47,6 +47,7 @@ const els = {
   statDown: document.getElementById("statDown"),
   statPending: document.getElementById("statPending"),
   statusText: document.getElementById("statusText"),
+  errorText: document.getElementById("errorText"),
   statusDot: document.getElementById("statusDot"),
   themeSelect: document.getElementById("themeSelect"),
   langSelect: document.getElementById("langSelect"),
@@ -79,9 +80,10 @@ function applyLanguage(lang) {
   els.statusText.textContent = t.disconnected;
 }
 
-function setConnected(isConnected, lang) {
+function setConnected(isConnected, lang, errorMessage = "") {
   const t = i18n[lang] || i18n.en;
   els.statusText.textContent = isConnected ? t.connected : t.disconnected;
+  els.errorText.textContent = errorMessage || "";
   document.querySelector(".footer").classList.toggle("connected", isConnected);
 }
 
@@ -124,6 +126,24 @@ async function fetchMetrics(config) {
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const text = await resp.text();
   return parseKumaMetrics(text);
+}
+
+function normalizeError(err) {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+  if (err.message) return err.message;
+  return "Unknown error";
+}
+
+async function refreshOnce(config) {
+  try {
+    const stats = await fetchMetrics(config);
+    updateStats(stats);
+    setConnected(true, config.lang || "zh");
+  } catch (err) {
+    console.error(err);
+    setConnected(false, config.lang || "zh", normalizeError(err));
+  }
 }
 
 function updateStats(stats) {
