@@ -183,29 +183,27 @@ els.langSelect.addEventListener("change", async () => {
 
 els.saveBtn.addEventListener("click", async () => {
   const config = await saveConfig();
-  try {
-    const stats = await fetchMetrics(config);
-    updateStats(stats);
-    setConnected(true, config.lang);
-  } catch (err) {
-    console.error(err);
-    setConnected(false, config.lang);
-  }
+  await refreshOnce(config);
+  await startAutoRefresh();
 });
 
 els.refreshBtn.addEventListener("click", async () => {
   const data = await chrome.storage.local.get(STORAGE_KEY);
   const config = data[STORAGE_KEY] || {};
-  try {
-    const stats = await fetchMetrics(config);
-    updateStats(stats);
-    setConnected(true, config.lang || "zh");
-  } catch (err) {
-    console.error(err);
-    setConnected(false, config.lang || "zh");
-  }
+  await refreshOnce(config);
 });
+
+let refreshTimer = null;
+
+async function startAutoRefresh() {
+  const data = await chrome.storage.local.get(STORAGE_KEY);
+  const config = data[STORAGE_KEY] || {};
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (!config.url) return;
+  refreshTimer = setInterval(() => refreshOnce(config), 60 * 1000);
+}
 
 (async () => {
   await loadConfig();
+  await startAutoRefresh();
 })();
