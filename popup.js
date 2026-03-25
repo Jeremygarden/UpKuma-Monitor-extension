@@ -16,7 +16,8 @@ const i18n = {
     disconnected: "Disconnected",
     connected: "Connected",
     toastSaved: "Config saved",
-    toastError: "Connection failed"
+    toastError: "Connection failed",
+    headerMeta: "Response · Updated"
   },
   zh: {
     title: "UpKuma 监控",
@@ -33,7 +34,8 @@ const i18n = {
     disconnected: "未连接",
     connected: "已连接",
     toastSaved: "配置已保存",
-    toastError: "连接失败"
+    toastError: "连接失败",
+    headerMeta: "响应时间 · 更新时间"
   }
 };
 
@@ -43,6 +45,7 @@ const els = {
   labelUrl: document.getElementById("labelUrl"),
   labelToken: document.getElementById("labelToken"),
   labelInterval: document.getElementById("labelInterval"),
+  monitorHeader: document.getElementById("monitorHeader"),
   saveBtn: document.getElementById("saveBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
   labelTotal: document.getElementById("labelTotal"),
@@ -82,6 +85,7 @@ function applyLanguage(lang) {
   els.labelUrl.textContent = t.labelUrl;
   els.labelToken.textContent = t.labelToken;
   els.labelInterval.textContent = t.labelInterval;
+  els.monitorHeader.textContent = t.headerMeta;
   els.saveBtn.textContent = t.save;
   els.refreshBtn.textContent = t.refresh;
   els.labelTotal.textContent = t.total;

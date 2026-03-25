@@ -182,6 +182,12 @@ input {
 .stat.bad .stat-value { color: var(--danger); }
 .stat.warn .stat-value { color: var(--warning); }
 
+.monitor-header {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
 .monitors {
   display: flex;
   flex-direction: column;
